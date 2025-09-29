@@ -1,0 +1,44 @@
+# Environment variables and secrets
+.env
+.env.*
+.envrc
+*.env
+
+# Logs
+logs
+*.log
+npm-debug.log*
+
+# Runtime data
+pids
+*.pid
+*.seed
+*.pid.lock
+
+# Dependencies
+node_modules/
+
+# Coverage
+coverage/
+.nyc_output/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Build artifacts
+*.tgz
+dist/
+build/
+
+# Temporary files
+tmp/
+temp/
+*.tmp
