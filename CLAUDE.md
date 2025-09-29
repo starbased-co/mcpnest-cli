@@ -31,11 +31,13 @@ DEBUG=1 node index.js read
 Authentication requires browser session cookies from [mcpnest.dev](https://mcpnest.dev/):
 
 1. Set via environment variable (preferred):
+
    ```bash
    export MCPNEST_COOKIE="_mcpnest_key=SFMyNTY..."
    ```
 
 2. Or use `.env` file:
+
    ```bash
    cp .env.example .env
    # Edit .env with cookie value
@@ -58,11 +60,13 @@ The `MCPNestClient` class (`index.js`) manages the entire WebSocket lifecycle:
 ### Protocol Details
 
 The client communicates using Phoenix message format:
+
 ```javascript
-[joinRef, msgRef, topic, event, payload]
+[joinRef, msgRef, topic, event, payload];
 ```
 
 Key events:
+
 - `phx_join`: Join LiveView channel
 - `heartbeat`: Keep connection alive (30-second intervals)
 - `event`: Submit form data for config updates
@@ -70,6 +74,7 @@ Key events:
 ### Configuration Format
 
 MCP server configurations follow this structure:
+
 ```json
 {
   "mcpServers": {
@@ -85,8 +90,9 @@ MCP server configurations follow this structure:
 
 ## Development Notes
 
-- The WebSocket connection uses hardcoded fallback values for CSRF tokens and PHX IDs if fetching fails
+- The WebSocket connection requires valid CSRF tokens and session data fetched from the page
 - Configuration is extracted from the LiveView render tree at path `renderTree["8"]["3"]` or `renderTree["1"]["3"]["0"]`
 - URL encoding is applied to configuration JSON when submitting form events
 - The client automatically handles Phoenix heartbeats to maintain connection
 - All WebSocket operations have 10-second timeouts to prevent hanging
+
