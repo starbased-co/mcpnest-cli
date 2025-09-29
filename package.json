@@ -1,0 +1,46 @@
+{
+  "name": "mcpnest-cli",
+  "version": "1.0.0",
+  "description": "Unofficial CLI tool for managing MCP server configurations on mcpnest.dev",
+  "main": "index.js",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/starbased-co/mcpnest-cli.git"
+  },
+  "homepage": "https://github.com/starbased-co/mcpnest-cli#readme",
+  "bugs": {
+    "url": "https://github.com/starbased-co/mcpnest-cli/issues"
+  },
+  "engines": {
+    "node": ">=14.0.0"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "prepublishOnly": "npm test",
+    "start": "node index.js",
+    "link-local": "npm link",
+    "unlink-local": "npm unlink"
+  },
+  "dependencies": {
+    "commander": "^11.1.0",
+    "ws": "^8.16.0"
+  },
+  "bin": {
+    "mcpnest": "./index.js"
+  },
+  "files": [
+    "index.js",
+    "README.md",
+    "LICENSE"
+  ],
+  "keywords": [
+    "mcp",
+    "mcpnest",
+    "cli",
+    "model-context-protocol",
+    "configuration"
+  ],
+  "author": "Your Name",
+  "license": "MIT",
+  "preferGlobal": true
+}

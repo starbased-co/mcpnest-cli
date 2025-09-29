@@ -1,0 +1,40 @@
+# Development files
+.env
+.env.example
+.envrc
+*.log
+*.pid
+*.seed
+*.swp
+.DS_Store
+
+# Git
+.git
+.gitignore
+
+# Documentation (keep README.md)
+CLAUDE.md
+
+# Test files
+test/
+*.test.js
+*.spec.js
+
+# Config files
+.eslintrc*
+.prettierrc*
+
+# Example files
+example-config.json
+
+# IDE
+.vscode/
+.idea/
+*.sublime-*
+
+# Coverage
+coverage/
+.nyc_output/
+
+# Dependencies
+node_modules/
