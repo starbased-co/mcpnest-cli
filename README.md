@@ -1,4 +1,4 @@
-# MCPNest CLI (Unofficial)
+# `mcpnest`
 
 An unofficial command-line tool for reading and writing MCP (Model Context Protocol) configurations to [mcpnest.dev](https://mcpnest.dev/).
 
@@ -29,7 +29,7 @@ npm link  # Creates global symlink for development
 
 ### Prerequisites
 
-You need to be authenticated with MCPNest. Get your cookie string from your browser:
+To get started, you need to get your cookie string from your browser:
 
 1. Log into [mcpnest.dev](https://mcpnest.dev/)
 2. Open browser DevTools (F12)
@@ -70,28 +70,6 @@ npx mcpnest-cli write -c "YOUR_COOKIE_STRING" -f config.json
 ```
 
 Both commands output the current MCP configuration as JSON to stdout.
-
-### Notes
-
-- The script uses the Phoenix LiveView websocket protocol
-- The script will automatically handle heartbeats to keep the connection alive
-- Configuration changes are saved immediately upon upload
-- The script attempts to fetch fresh CSRF tokens from the page, but falls back to hardcoded values if needed
-
-### Important: Authentication
-
-The **cookie string** is your browser's session cookies, NOT the CSRF token. The cookie authenticates you as a logged-in user. The CSRF token is for cross-site request forgery protection and is fetched automatically by the script.
-
-### Using with .env file
-
-You can also create a `.env` file (see `.env.example`):
-
-```bash
-cp .env.example .env
-# Edit .env with your cookie
-source .env
-mcpnest read
-```
 
 ### Troubleshooting
 

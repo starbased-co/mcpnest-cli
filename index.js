@@ -13,7 +13,7 @@ class MCPNestClient {
     this.cookies = cookies;
     this.ws = null;
     this.msgRef = 0;
-    this.joinRef = "4";
+    this.joinRef = null;  // Will be generated when needed
     this.phxId = null;
     this.heartbeatInterval = null;
     this.csrfToken = null;
@@ -93,7 +93,7 @@ class MCPNestClient {
           }
 
           if (!this.csrfToken && process.env.DEBUG) {
-            console.error('Warning: No CSRF token found, will use fallback');
+            console.error('Warning: No CSRF token found');
           }
 
           resolve();
@@ -110,14 +110,7 @@ class MCPNestClient {
       }
       await this.fetchPageTokens();
       if (!this.csrfToken) {
-        // Use fallback hardcoded token if fetch failed
-        if (process.env.DEBUG) {
-          console.error('Warning: Could not fetch CSRF token, using fallback');
-        }
-        // No fallback token - authentication will fail if we can't fetch one
-        this.csrfToken = null;
-        console.error('ERROR: Could not fetch CSRF token from page. Authentication will fail.');
-        console.error('Make sure you are logged in and cookies are valid.');
+        throw new Error('Failed to fetch CSRF token from page. Make sure you are logged in and cookies are valid.');
       }
     }
 
@@ -129,9 +122,8 @@ class MCPNestClient {
       'vsn': '2.0.0'
     });
 
-    // Add track_static params
-    params.append('_track_static[]', 'https://mcpnest.dev/assets/css/app-90fcb04d2f8c30647d77d8358e6155d4.css?vsn=d');
-    params.append('_track_static[]', 'https://mcpnest.dev/assets/js/app-7831a1367ceb05f5ee9ffca82bd6e1cc.js?vsn=d');
+    // Note: _track_static params omitted as they contain version-specific hashes
+    // that would break when the site updates. These are optional for the protocol.
 
     const url = `wss://mcpnest.dev/live/websocket?${params.toString()}`;
 
@@ -189,17 +181,18 @@ class MCPNestClient {
 
   async joinLiveView() {
     return new Promise((resolve, reject) => {
-      // Use the PHX ID we fetched or fall back to hardcoded one
+      // Require PHX ID from page - no fallback
       if (!this.phxId) {
-        this.phxId = "phx-GGlLJbUrZtsDOhtx";
-        if (process.env.DEBUG) {
-          console.error('Using fallback PHX ID');
-        }
+        reject(new Error('Failed to extract PHX ID from page'));
+        return;
       }
       const topic = `${LIVEVIEW_TOPIC_PREFIX}${this.phxId}`;
       if (process.env.DEBUG) {
         console.error('Joining topic:', topic);
       }
+
+      // Generate join reference for this join operation
+      this.joinRef = String(this.msgRef++);
 
       const joinMsg = [
         this.joinRef,
@@ -209,11 +202,7 @@ class MCPNestClient {
         {
           "url": "https://mcpnest.dev/config",
           "params": {
-            "_csrf_token": this.csrfToken || "",
-            "_track_static": [
-              "https://mcpnest.dev/assets/css/app-90fcb04d2f8c30647d77d8358e6155d4.css?vsn=d",
-              "https://mcpnest.dev/assets/js/app-7831a1367ceb05f5ee9ffca82bd6e1cc.js?vsn=d"
-            ],
+            "_csrf_token": this.csrfToken,  // Required - will throw error if missing
             "_mounts": 0,
             "_mount_attempts": 0
           },
