@@ -3,6 +3,7 @@
 const WebSocket = require('ws');
 const fs = require('fs');
 const { program } = require('commander');
+const { version } = require('./package.json');
 
 // Phoenix/LiveView protocol constants
 const PHOENIX_CHANNEL = "phoenix";
@@ -411,7 +412,7 @@ class MCPNestClient {
 program
   .name('mcpnest')
   .description('CLI for MCPNest configuration management')
-  .version('1.0.0');
+  .version(version);
 
 program
   .command('read')
