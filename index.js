@@ -20,6 +20,7 @@ class MCPNestClient {
     this.csrfToken = null;
     this.session = null;
     this.static = null;
+    this.debug = process.env.DEBUG ? true : false;
   }
 
   async fetchPageTokens() {
@@ -373,13 +374,27 @@ class MCPNestClient {
         }
       ];
 
+      if (this.debug) {
+        console.error('Debug: Sending save message:', JSON.stringify(saveMsg));
+        console.error('Debug: Config being saved:', JSON.stringify(config, null, 2));
+      }
+
       const handler = (data) => {
         const msg = JSON.parse(data.toString());
+        if (this.debug) {
+          console.error('Debug: Received message during save:', JSON.stringify(msg));
+        }
         if (msg[2] === topic && msg[3] === "phx_reply") {
           this.ws.removeListener('message', handler);
           if (msg[4].status === "ok") {
+            if (this.debug) {
+              console.error('Debug: Save successful, response:', JSON.stringify(msg[4].response));
+            }
             resolve(msg[4].response);
           } else {
+            if (this.debug) {
+              console.error('Debug: Save failed with response:', JSON.stringify(msg[4]));
+            }
             reject(new Error('Save failed: ' + JSON.stringify(msg[4])));
           }
         }
@@ -479,8 +494,15 @@ program
       const config = JSON.parse(configData);
 
       await client.connect();
-      await client.writeConfig(config);
+      const response = await client.writeConfig(config);
+      if (client.debug) {
+        console.error('Debug: Write response:', JSON.stringify(response));
+      }
       console.error('Configuration saved successfully');
+
+      // Add a small delay to ensure the save is processed
+      await new Promise(resolve => setTimeout(resolve, 1000));
+
       client.close();
       process.exit(0);
     } catch (error) {
