@@ -1,11 +1,11 @@
 {
   "name": "mcpnest-cli",
-  "version": "1.0.0",
+  "version": "1.1.1",
   "description": "Unofficial CLI tool for managing MCP server configurations on mcpnest.dev",
   "main": "index.js",
   "repository": {
     "type": "git",
-    "url": "https://github.com/starbased-co/mcpnest-cli.git"
+    "url": "git+https://github.com/starbased-co/mcpnest-cli.git"
   },
   "homepage": "https://github.com/starbased-co/mcpnest-cli#readme",
   "bugs": {
@@ -15,8 +15,7 @@
     "node": ">=14.0.0"
   },
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "prepublishOnly": "npm test",
+    "test": "echo \"No tests configured\"",
     "start": "node index.js",
     "link-local": "npm link",
     "unlink-local": "npm unlink"
@@ -26,7 +25,7 @@
     "ws": "^8.16.0"
   },
   "bin": {
-    "mcpnest": "./index.js"
+    "mcpnest": "index.js"
   },
   "files": [
     "index.js",

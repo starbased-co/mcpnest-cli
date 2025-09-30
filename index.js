@@ -331,7 +331,19 @@ class MCPNestClient {
 
     const config = this.extractConfigFromRender(response);
     if (config) {
-      return JSON.parse(config);
+      const parsedConfig = JSON.parse(config);
+      // Output the JSON immediately and exit
+      process.stdout.write(JSON.stringify(parsedConfig, null, 2) + '\n');
+      if (process.env.DEBUG) process.stderr.write('About to exit process...\n');
+      // Forcefully terminate all operations
+      if (this.ws) {
+        this.ws.removeAllListeners();
+        this.ws.terminate();
+      }
+      if (this.heartbeatInterval) {
+        clearInterval(this.heartbeatInterval);
+      }
+      process.exit(0);
     }
     throw new Error('Could not extract configuration from response');
   }
@@ -385,9 +397,12 @@ class MCPNestClient {
   close() {
     if (this.heartbeatInterval) {
       clearInterval(this.heartbeatInterval);
+      this.heartbeatInterval = null;
     }
     if (this.ws) {
-      this.ws.close();
+      this.ws.removeAllListeners();
+      this.ws.terminate();
+      this.ws = null;
     }
   }
 }
@@ -411,9 +426,8 @@ program
     const client = new MCPNestClient(cookies);
     try {
       await client.connect();
-      const config = await client.readConfig();
-      console.log(JSON.stringify(config, null, 2));
-      client.close();
+      await client.readConfig();
+      // JSON output and exit happens inside readConfig()
     } catch (error) {
       console.error('Error:', error.message);
       process.exit(1);
@@ -424,7 +438,7 @@ program
   .command('write')
   .description('Write MCP configuration to MCPNest')
   .option('-c, --cookies <cookies>', 'Cookie string for authentication (or use MCPNEST_COOKIE env var)')
-  .requiredOption('-f, --file <file>', 'JSON file containing the configuration')
+  .option('-f, --file <file>', 'JSON file containing the configuration (reads from stdin if omitted)')
   .action(async (options) => {
     const cookies = options.cookies || process.env.MCPNEST_COOKIE;
     if (!cookies) {
@@ -433,15 +447,44 @@ program
     }
     const client = new MCPNestClient(cookies);
     try {
-      const configData = fs.readFileSync(options.file, 'utf8');
+      let configData;
+
+      if (options.file) {
+        // Read from file
+        configData = fs.readFileSync(options.file, 'utf8');
+      } else {
+        // Read from stdin
+        configData = await new Promise((resolve, reject) => {
+          let data = '';
+          process.stdin.setEncoding('utf8');
+
+          process.stdin.on('data', chunk => {
+            data += chunk;
+          });
+
+          process.stdin.on('end', () => {
+            resolve(data);
+          });
+
+          process.stdin.on('error', reject);
+
+          // Check if stdin is a TTY (terminal)
+          if (process.stdin.isTTY) {
+            reject(new Error('No input provided. Use -f option to specify a file or pipe JSON to stdin'));
+          }
+        });
+      }
+
       const config = JSON.parse(configData);
 
       await client.connect();
       await client.writeConfig(config);
       console.error('Configuration saved successfully');
       client.close();
+      process.exit(0);
     } catch (error) {
       console.error('Error:', error.message);
+      client.close();
       process.exit(1);
     }
   });

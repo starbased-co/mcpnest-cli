@@ -53,6 +53,8 @@ export MCPNEST_COOKIE="your_cookie_string_here"
 # Then use the commands without -c
 mcpnest read
 mcpnest write -f config.json
+cat config.json | mcpnest write
+mcpnest read | mcpnest write  # Copy current config
 ```
 
 Or with the `-c` command-line option:
@@ -61,12 +63,17 @@ Or with the `-c` command-line option:
 # Read Configuration
 mcpnest read -c "YOUR_COOKIE_STRING"
 
-# Write Configuration
+# Write Configuration from file
 mcpnest write -c "YOUR_COOKIE_STRING" -f config.json
+
+# Write Configuration from stdin
+mcpnest read -c "YOUR_COOKIE_STRING" | mcpnest write -c "YOUR_COOKIE_STRING"
+echo '{"mcpServers": {}}' | mcpnest write -c "YOUR_COOKIE_STRING"
 
 # Using npx without installation
 npx mcpnest-cli read -c "YOUR_COOKIE_STRING"
 npx mcpnest-cli write -c "YOUR_COOKIE_STRING" -f config.json
+npx mcpnest-cli read | npx mcpnest-cli write
 ```
 
 Both commands output the current MCP configuration as JSON to stdout.
