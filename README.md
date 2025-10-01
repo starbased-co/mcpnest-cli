@@ -1,6 +1,12 @@
 # `mcpnest`
 
+[![npm version](https://img.shields.io/npm/v/mcpnest-cli.svg)](https://www.npmjs.com/package/mcpnest-cli)
+[![npm downloads](https://img.shields.io/npm/dm/mcpnest-cli.svg)](https://www.npmjs.com/package/mcpnest-cli)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+
 An unofficial command-line tool for reading and writing MCP (Model Context Protocol) configurations to [mcpnest.dev](https://mcpnest.dev/).
+
+> **💡 Manage MCP templates with ease:** Use [`buildmcp`](https://github.com/starbased-co/buildmcp) to organize your MCP servers into reusable templates and profiles, then deploy them to MCPNest or local configs with built-in change detection. Perfect for managing multiple MCP configurations across environments.
 
 ## Features
 
