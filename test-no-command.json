@@ -1,0 +1,8 @@
+{
+  "mcpServers": {
+    "missing-command": {
+      "type": "stdio",
+      "args": ["server"]
+    }
+  }
+}

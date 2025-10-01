@@ -1,0 +1,118 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://claude.com/schemas/mcp-config.json",
+  "title": "Claude Code MCP Configuration",
+  "description": "JSON Schema for Claude Code MCP server configuration format",
+  "type": "object",
+  "required": ["mcpServers"],
+  "properties": {
+    "mcpServers": {
+      "type": "object",
+      "description": "Map of server names to server configurations",
+      "additionalProperties": {
+        "oneOf": [
+          {
+            "$ref": "#/$defs/stdioServer"
+          },
+          {
+            "$ref": "#/$defs/httpServer"
+          },
+          {
+            "$ref": "#/$defs/sseServer"
+          }
+        ]
+      }
+    }
+  },
+  "$defs": {
+    "stdioServer": {
+      "title": "STDIO Server Configuration",
+      "description": "Configuration for local process execution via standard input/output",
+      "type": "object",
+      "required": ["command"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "enum": ["stdio"],
+          "description": "Transport type (optional for stdio, inferred if omitted)"
+        },
+        "command": {
+          "type": "string",
+          "description": "Executable path or command name (e.g., 'npx', '/usr/bin/python', './script.sh')",
+          "minLength": 1
+        },
+        "args": {
+          "type": "array",
+          "description": "Command-line arguments passed to the command",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables with support for expansion: ${VAR} or ${VAR:-default}",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false
+    },
+    "httpServer": {
+      "title": "HTTP Server Configuration",
+      "description": "Configuration for HTTP request/response transport",
+      "type": "object",
+      "required": ["type", "url"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "http",
+          "description": "Transport type"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Server endpoint URL",
+          "pattern": "^https?://.+"
+        },
+        "headers": {
+          "type": "object",
+          "description": "HTTP headers for authentication and other purposes",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    },
+    "sseServer": {
+      "title": "SSE Server Configuration",
+      "description": "Configuration for Server-Sent Events transport for real-time streaming",
+      "type": "object",
+      "required": ["type", "url"],
+      "properties": {
+        "type": {
+          "type": "string",
+          "const": "sse",
+          "description": "Transport type"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "description": "Server endpoint URL for SSE connection",
+          "pattern": "^https?://.+"
+        },
+        "headers": {
+          "type": "object",
+          "description": "HTTP headers for authentication and other purposes",
+          "additionalProperties": {
+            "type": "string"
+          }
+        }
+      },
+      "additionalProperties": false
+    }
+  }
+}

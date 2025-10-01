@@ -1,0 +1,132 @@
+{
+  "$schema": "http://json-schema.org/draft-07/schema#",
+  "$id": "https://mcpnest.dev/schemas/mcp-config.json",
+  "title": "MCPNest MCP Configuration",
+  "description": "JSON Schema for MCPNest MCP server configuration format with strict validation",
+  "type": "object",
+  "required": ["mcpServers"],
+  "properties": {
+    "mcpServers": {
+      "type": "object",
+      "description": "Map of server names to server configurations",
+      "additionalProperties": {
+        "$ref": "#/$defs/mcpnestServer"
+      }
+    }
+  },
+  "$defs": {
+    "mcpnestServer": {
+      "title": "MCPNest Server Configuration",
+      "description": "Configuration for MCP server execution on MCPNest cloud platform. Only stdio transport with npx/uvx commands are supported.",
+      "type": "object",
+      "required": ["command"],
+      "properties": {
+        "command": {
+          "type": "string",
+          "enum": ["npx", "uvx"],
+          "description": "Package executor command. Only 'npx' (Node.js) and 'uvx' (Python UV) are allowed for security reasons."
+        },
+        "args": {
+          "type": "array",
+          "description": "Command-line arguments passed to the package executor",
+          "items": {
+            "type": "string"
+          },
+          "default": []
+        },
+        "transport": {
+          "type": "object",
+          "description": "Transport configuration (optional but recommended)",
+          "properties": {
+            "type": {
+              "type": "string",
+              "const": "stdio",
+              "description": "Transport type. Only 'stdio' is supported by MCPNest."
+            }
+          },
+          "additionalProperties": false
+        },
+        "env": {
+          "type": "object",
+          "description": "Environment variables as literal string values. Variable expansion (${VAR}) is NOT supported.",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "default": {}
+        }
+      },
+      "additionalProperties": false,
+      "errorMessage": {
+        "additionalProperties": "Invalid field detected. Allowed fields: command, args, transport, env",
+        "required": "Missing required field: command",
+        "properties": {
+          "command": "Invalid command. Allowed commands: npx, uvx"
+        }
+      }
+    }
+  },
+  "examples": [
+    {
+      "mcpServers": {
+        "github": {
+          "command": "npx",
+          "args": ["-y", "@modelcontextprotocol/server-github"],
+          "transport": {
+            "type": "stdio"
+          },
+          "env": {
+            "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxx"
+          }
+        }
+      }
+    },
+    {
+      "mcpServers": {
+        "zen": {
+          "command": "uvx",
+          "args": [
+            "--from",
+            "git+https://github.com/starbased-co/zen-mcp-server.git",
+            "zen-mcp-server"
+          ],
+          "transport": {
+            "type": "stdio"
+          },
+          "env": {
+            "GEMINI_API_KEY": "xxx"
+          }
+        }
+      }
+    }
+  ],
+  "x-mcpnest-validation-rules": {
+    "description": "Additional validation rules enforced by MCPNest platform",
+    "rules": [
+      {
+        "rule": "command-whitelist",
+        "description": "Only 'npx' and 'uvx' commands are allowed",
+        "error": "Server '<name>' has invalid command '<command>'. Allowed commands: uvx, npx"
+      },
+      {
+        "rule": "no-custom-paths",
+        "description": "Custom executable paths like '/usr/bin/python' are not allowed",
+        "error": "Server '<name>' has invalid command '<path>'. Allowed commands: uvx, npx"
+      },
+      {
+        "rule": "stdio-only",
+        "description": "Only stdio transport is supported, no HTTP or SSE",
+        "error": "Server '<name>' has invalid fields: url, headers, type. Allowed fields: command, args, transport, env"
+      },
+      {
+        "rule": "no-expansion",
+        "description": "Environment variable expansion (${VAR}) is not supported",
+        "error": "Environment values must be literal strings"
+      },
+      {
+        "rule": "strict-fields",
+        "description": "Only command, args, transport, env fields are allowed",
+        "error": "Server '<name>' has invalid fields: <field-list>. Allowed fields: command, args, transport, env"
+      }
+    ]
+  }
+}

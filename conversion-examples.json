@@ -1,0 +1,325 @@
+{
+  "description": "Examples demonstrating conversion from Claude Code to MCPNest MCP format",
+  "version": "1.0.0",
+  "examples": [
+    {
+      "name": "Simple NPX Server - Convertible",
+      "compatible": true,
+      "claudeCode": {
+        "mcpServers": {
+          "github": {
+            "type": "stdio",
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"],
+            "env": {
+              "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "github": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {
+              "GITHUB_PERSONAL_ACCESS_TOKEN": "ghp_xxx"
+            }
+          }
+        }
+      },
+      "changes": [
+        "Removed top-level 'type' field",
+        "Added 'transport' object with type: 'stdio'"
+      ]
+    },
+    {
+      "name": "UVX Python Package - Convertible",
+      "compatible": true,
+      "claudeCode": {
+        "mcpServers": {
+          "linkup": {
+            "command": "uvx",
+            "args": ["mcp-search-linkup"],
+            "env": {
+              "LINKUP_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "linkup": {
+            "command": "uvx",
+            "args": ["mcp-search-linkup"],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {
+              "LINKUP_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "changes": [
+        "Added 'transport' object (type field was already omitted)",
+        "No other changes needed"
+      ]
+    },
+    {
+      "name": "Git Package with UV - Convertible",
+      "compatible": true,
+      "claudeCode": {
+        "mcpServers": {
+          "zen": {
+            "type": "stdio",
+            "command": "uvx",
+            "args": [
+              "--from",
+              "git+https://github.com/starbased-co/zen-mcp-server.git",
+              "zen-mcp-server"
+            ],
+            "env": {
+              "GEMINI_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "zen": {
+            "command": "uvx",
+            "args": [
+              "--from",
+              "git+https://github.com/starbased-co/zen-mcp-server.git",
+              "zen-mcp-server"
+            ],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {
+              "GEMINI_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "changes": [
+        "Removed 'type' field",
+        "Added 'transport' object"
+      ]
+    },
+    {
+      "name": "HTTP Server - NOT Convertible",
+      "compatible": false,
+      "reason": "MCPNest does not support HTTP transport",
+      "claudeCode": {
+        "mcpServers": {
+          "github": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp",
+            "headers": {
+              "Authorization": "Bearer ghp_xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": null,
+      "error": "Server 'github' has invalid fields: url, headers, type. Allowed fields: command, args, transport, env"
+    },
+    {
+      "name": "SSE Server - NOT Convertible",
+      "compatible": false,
+      "reason": "MCPNest does not support SSE transport",
+      "claudeCode": {
+        "mcpServers": {
+          "sse-server": {
+            "type": "sse",
+            "url": "https://mcp.example.com/sse",
+            "headers": {
+              "Authorization": "Bearer xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": null,
+      "error": "Server 'sse-server' has invalid fields: url, headers, type. Allowed fields: command, args, transport, env"
+    },
+    {
+      "name": "Custom Python Path - NOT Convertible",
+      "compatible": false,
+      "reason": "Custom executable paths not allowed (only npx/uvx)",
+      "claudeCode": {
+        "mcpServers": {
+          "perplexity": {
+            "command": "/home/user/venv/bin/python",
+            "args": ["/home/user/server.py"]
+          }
+        }
+      },
+      "mcpnest": null,
+      "error": "Server 'perplexity' has invalid command '/home/user/venv/bin/python'. Allowed commands: uvx, npx"
+    },
+    {
+      "name": "Direct Python Command - NOT Convertible",
+      "compatible": false,
+      "reason": "Direct 'python' command not in whitelist",
+      "claudeCode": {
+        "mcpServers": {
+          "custom": {
+            "command": "python",
+            "args": ["server.py"]
+          }
+        }
+      },
+      "mcpnest": null,
+      "error": "Server 'custom' has invalid command 'python'. Allowed commands: uvx, npx"
+    },
+    {
+      "name": "Environment Variable Expansion - Requires Pre-processing",
+      "compatible": true,
+      "note": "Environment variables must be expanded before uploading to MCPNest",
+      "claudeCode": {
+        "mcpServers": {
+          "api": {
+            "command": "npx",
+            "args": ["my-server"],
+            "env": {
+              "API_KEY": "${MY_API_KEY}",
+              "BASE_URL": "${BASE_URL:-https://api.example.com}",
+              "TIMEOUT": "${TIMEOUT:-30}"
+            }
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "api": {
+            "command": "npx",
+            "args": ["my-server"],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {
+              "API_KEY": "actual-key-value",
+              "BASE_URL": "https://api.example.com",
+              "TIMEOUT": "30"
+            }
+          }
+        }
+      },
+      "changes": [
+        "Expanded ${MY_API_KEY} to actual value",
+        "Expanded ${BASE_URL:-https://api.example.com} to default value",
+        "Expanded ${TIMEOUT:-30} to default value",
+        "Added 'transport' object"
+      ]
+    },
+    {
+      "name": "Mixed Configuration - Partial Conversion",
+      "compatible": "partial",
+      "note": "Some servers are convertible, others must be skipped",
+      "claudeCode": {
+        "mcpServers": {
+          "github-http": {
+            "type": "http",
+            "url": "https://api.githubcopilot.com/mcp",
+            "headers": {
+              "Authorization": "Bearer xxx"
+            }
+          },
+          "github-cli": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"]
+          },
+          "custom-python": {
+            "command": "/usr/bin/python",
+            "args": ["server.py"]
+          },
+          "firecrawl": {
+            "command": "npx",
+            "args": ["-y", "firecrawl-mcp"],
+            "env": {
+              "FIRECRAWL_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "github-cli": {
+            "command": "npx",
+            "args": ["-y", "@modelcontextprotocol/server-github"],
+            "transport": {
+              "type": "stdio"
+            }
+          },
+          "firecrawl": {
+            "command": "npx",
+            "args": ["-y", "firecrawl-mcp"],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {
+              "FIRECRAWL_API_KEY": "xxx"
+            }
+          }
+        }
+      },
+      "skipped": [
+        {
+          "name": "github-http",
+          "reason": "HTTP transport not supported"
+        },
+        {
+          "name": "custom-python",
+          "reason": "Custom command path not in whitelist"
+        }
+      ],
+      "changes": [
+        "Converted 2 of 4 servers (50% conversion rate)",
+        "Skipped HTTP server 'github-http'",
+        "Skipped custom path server 'custom-python'",
+        "Added 'transport' objects to converted servers"
+      ]
+    },
+    {
+      "name": "Empty Environment - Convertible",
+      "compatible": true,
+      "claudeCode": {
+        "mcpServers": {
+          "simple": {
+            "command": "npx",
+            "args": ["simple-server"]
+          }
+        }
+      },
+      "mcpnest": {
+        "mcpServers": {
+          "simple": {
+            "command": "npx",
+            "args": ["simple-server"],
+            "transport": {
+              "type": "stdio"
+            },
+            "env": {}
+          }
+        }
+      },
+      "changes": [
+        "Added 'transport' object",
+        "Added empty 'env' object (optional but recommended)"
+      ]
+    }
+  ],
+  "conversionStatistics": {
+    "totalExamples": 10,
+    "fullyCompatible": 4,
+    "incompatible": 4,
+    "partiallyCompatible": 1,
+    "requiresPreprocessing": 1,
+    "conversionRate": "40-50% for typical configurations"
+  }
+}

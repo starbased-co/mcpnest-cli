@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "http-only": {
+      "type": "http",
+      "url": "https://api.example.com/mcp"
+    },
+    "sse-server": {
+      "type": "sse",
+      "url": "https://stream.example.com/events"
+    },
+    "custom-python": {
+      "command": "/home/user/venv/bin/python",
+      "args": ["/home/user/server.py"]
+    }
+  }
+}

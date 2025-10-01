@@ -23,6 +23,151 @@ class MCPNestClient {
     this.debug = process.env.DEBUG ? true : false;
   }
 
+  /**
+   * Format and validate MCP configuration for MCPNest compatibility
+   * @param {Object} config - Raw MCP configuration
+   * @returns {Object} Result with valid, invalid servers and warnings
+   */
+  formatConfig(config) {
+    const result = {
+      valid: {},
+      invalid: [],
+      warnings: []
+    };
+
+    // Validate root structure
+    if (!config || !config.mcpServers) {
+      result.warnings.push('Configuration must contain mcpServers object');
+      return result;
+    }
+
+    const ALLOWED_COMMANDS = ['npx', 'uvx'];
+    const ALLOWED_FIELDS = ['command', 'args', 'transport', 'env'];
+
+    for (const [serverName, serverConfig] of Object.entries(config.mcpServers)) {
+      const issues = [];
+      let converted = {};
+
+      // Rule 4: Skip HTTP/SSE servers
+      if (serverConfig.type === 'http' || serverConfig.type === 'sse') {
+        result.invalid.push({
+          name: serverName,
+          reason: `${serverConfig.type.toUpperCase()} transport not supported by MCPNest`,
+          suggestion: 'Use stdio-based alternative or deploy server separately'
+        });
+        continue;
+      }
+
+      // Check for HTTP/SSE indicators even without explicit type
+      if (serverConfig.url || serverConfig.headers) {
+        result.invalid.push({
+          name: serverName,
+          reason: 'HTTP/SSE fields detected (url/headers)',
+          suggestion: 'MCPNest only supports stdio transport'
+        });
+        continue;
+      }
+
+      // Rule 3: Validate command whitelist
+      if (!serverConfig.command) {
+        result.invalid.push({
+          name: serverName,
+          reason: 'Missing required field: command',
+          suggestion: 'Add command field with value "npx" or "uvx"'
+        });
+        continue;
+      }
+
+      if (!ALLOWED_COMMANDS.includes(serverConfig.command)) {
+        const isPath = serverConfig.command.includes('/') || serverConfig.command.includes('\\');
+        const suggestion = isPath
+          ? 'Package as npm/PyPI package and use "npx" or "uvx" command'
+          : `Use "npx" or "uvx" instead of "${serverConfig.command}"`;
+
+        result.invalid.push({
+          name: serverName,
+          reason: `Command '${serverConfig.command}' not allowed`,
+          suggestion: suggestion
+        });
+        continue;
+      }
+
+      // Build converted server config
+      converted.command = serverConfig.command;
+
+      // Copy args if present
+      if (serverConfig.args) {
+        converted.args = serverConfig.args;
+      }
+
+      // Rule 2: Convert transport syntax
+      // Remove top-level type field and add transport object
+      if (!serverConfig.transport || !serverConfig.transport.type) {
+        converted.transport = { type: 'stdio' };
+      } else {
+        converted.transport = serverConfig.transport;
+      }
+
+      // Rule 5: Expand environment variables
+      if (serverConfig.env) {
+        converted.env = {};
+        for (const [key, value] of Object.entries(serverConfig.env)) {
+          if (typeof value === 'string') {
+            converted.env[key] = this.expandEnvVar(value);
+          } else {
+            converted.env[key] = value;
+          }
+        }
+      } else {
+        converted.env = {};
+      }
+
+      // Rule 1: Remove invalid fields
+      const invalidFields = [];
+      for (const field of Object.keys(serverConfig)) {
+        if (field === 'type') {
+          // Silently convert type field to transport
+          continue;
+        }
+        if (!ALLOWED_FIELDS.includes(field)) {
+          invalidFields.push(field);
+        }
+      }
+
+      if (invalidFields.length > 0) {
+        result.warnings.push(`Server '${serverName}': Removed invalid fields: ${invalidFields.join(', ')}`);
+      }
+
+      // Add to valid servers
+      result.valid[serverName] = converted;
+    }
+
+    return result;
+  }
+
+  /**
+   * Expand environment variables in format ${VAR} or ${VAR:-default}
+   * @param {string} value - Value potentially containing env var references
+   * @returns {string} Expanded value
+   */
+  expandEnvVar(value) {
+    return value.replace(/\$\{([^}]+)\}/g, (match, expr) => {
+      if (expr.includes(':-')) {
+        const [varName, defaultValue] = expr.split(':-');
+        const envValue = process.env[varName];
+        if (!envValue && !defaultValue) {
+          console.error(`Warning: Environment variable '${varName}' is undefined and no default provided`);
+        }
+        return envValue || defaultValue || '';
+      }
+      const envValue = process.env[expr];
+      if (!envValue) {
+        console.error(`Warning: Environment variable '${expr}' is undefined`);
+      }
+      return envValue || '';
+    });
+  }
+
   async fetchPageTokens() {
     // First fetch the config page to get fresh tokens
     const https = require('https');
@@ -351,6 +496,52 @@ class MCPNestClient {
   }
 
   async writeConfig(config) {
+    // Validate and convert config to MCPNest format
+    const formatResult = this.formatConfig(config);
+
+    // Display validation results
+    console.error('\n⚠ Validation Results:');
+
+    const validCount = Object.keys(formatResult.valid).length;
+    const invalidCount = formatResult.invalid.length;
+    const totalCount = validCount + invalidCount;
+
+    if (validCount > 0) {
+      console.error(`  ✓ ${validCount} server${validCount !== 1 ? 's' : ''} validated successfully`);
+    }
+
+    if (invalidCount > 0) {
+      console.error(`  ✗ ${invalidCount} server${invalidCount !== 1 ? 's' : ''} rejected:`);
+      console.error('');
+      for (const invalid of formatResult.invalid) {
+        console.error(`    • "${invalid.name}": ${invalid.reason}`);
+        console.error(`      Suggestion: ${invalid.suggestion}`);
+        console.error('');
+      }
+    }
+
+    if (formatResult.warnings.length > 0) {
+      console.error('  ⚠ Warnings:');
+      for (const warning of formatResult.warnings) {
+        console.error(`    • ${warning}`);
+      }
+      console.error('');
+    }
+
+    // Check if we have any valid servers to save
+    if (validCount === 0) {
+      console.error('  No valid servers to save. Aborting.');
+      // Return exit code 2: All servers rejected
+      return { exitCode: 2 };
+    }
+
+    console.error(`  Proceeding with ${validCount} valid server${validCount !== 1 ? 's' : ''}...\n`);
+
+    // Construct the config with only valid servers
+    const validConfig = {
+      mcpServers: formatResult.valid
+    };
+
     // First join the LiveView
     await this.joinLiveView();
 
@@ -358,7 +549,7 @@ class MCPNestClient {
       const topic = `${LIVEVIEW_TOPIC_PREFIX}${this.phxId}`;
 
       // URL encode the JSON config
-      const encodedConfig = encodeURIComponent(JSON.stringify(config, null, 2))
+      const encodedConfig = encodeURIComponent(JSON.stringify(validConfig, null, 2))
         .replace(/%20/g, '+');
 
       const saveMsg = [
@@ -376,7 +567,7 @@ class MCPNestClient {
 
       if (this.debug) {
         console.error('Debug: Sending save message:', JSON.stringify(saveMsg));
-        console.error('Debug: Config being saved:', JSON.stringify(config, null, 2));
+        console.error('Debug: Config being saved:', JSON.stringify(validConfig, null, 2));
       }
 
       const handler = (data) => {
@@ -390,7 +581,9 @@ class MCPNestClient {
             if (this.debug) {
               console.error('Debug: Save successful, response:', JSON.stringify(msg[4].response));
             }
-            resolve(msg[4].response);
+            // Determine exit code based on validation results
+            const exitCode = invalidCount > 0 ? 1 : 0;
+            resolve({ ...msg[4].response, exitCode });
           } else {
             if (this.debug) {
               console.error('Debug: Save failed with response:', JSON.stringify(msg[4]));
@@ -446,7 +639,7 @@ program
       // JSON output and exit happens inside readConfig()
     } catch (error) {
       console.error('Error:', error.message);
-      process.exit(1);
+      process.exit(3);  // Exit code 3: Fatal error
     }
   });
 
@@ -495,20 +688,41 @@ program
 
       await client.connect();
       const response = await client.writeConfig(config);
-      if (client.debug) {
-        console.error('Debug: Write response:', JSON.stringify(response));
+
+      // Handle exit codes from validation
+      if (response.exitCode !== undefined) {
+        if (response.exitCode === 2) {
+          // All servers rejected
+          client.close();
+          process.exit(2);
+        } else if (response.exitCode === 1) {
+          // Some servers rejected but valid ones saved
+          console.error('Configuration saved successfully (with rejections)');
+          client.close();
+          process.exit(1);
+        } else {
+          // All servers valid
+          console.error('Configuration saved successfully');
+          client.close();
+          process.exit(0);
+        }
+      } else {
+        // Successful save (backward compatibility)
+        if (client.debug) {
+          console.error('Debug: Write response:', JSON.stringify(response));
+        }
+        console.error('Configuration saved successfully');
+
+        // Add a small delay to ensure the save is processed
+        await new Promise(resolve => setTimeout(resolve, 1000));
+
+        client.close();
+        process.exit(0);
       }
-      console.error('Configuration saved successfully');
-
-      // Add a small delay to ensure the save is processed
-      await new Promise(resolve => setTimeout(resolve, 1000));
-
-      client.close();
-      process.exit(0);
     } catch (error) {
       console.error('Error:', error.message);
       client.close();
-      process.exit(1);
+      process.exit(3);  // Exit code 3: Fatal error
     }
   });
 

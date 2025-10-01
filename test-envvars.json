@@ -1,0 +1,15 @@
+{
+  "mcpServers": {
+    "with-vars": {
+      "type": "stdio",
+      "command": "npx",
+      "args": ["mcp-server"],
+      "env": {
+        "API_KEY": "${TEST_API_KEY}",
+        "BASE_URL": "${BASE_URL:-https://default.api.com}",
+        "MISSING_VAR": "${UNDEFINED_VAR}",
+        "MISSING_WITH_DEFAULT": "${UNDEFINED_VAR:-default-value}"
+      }
+    }
+  }
+}
