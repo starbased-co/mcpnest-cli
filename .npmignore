@@ -7,6 +7,7 @@
 *.seed
 *.swp
 .DS_Store
+publish.sh
 
 # Git
 .git
@@ -14,11 +15,11 @@
 
 # Documentation (keep README.md)
 CLAUDE.md
+docs/
 
 # Test files
-test/
-*.test.js
-*.spec.js
+tests/
+jest.config.js
 
 # Config files
 .eslintrc*
